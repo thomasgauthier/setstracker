@@ -312,18 +312,6 @@ function App() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Reps</label>
-                  <input
-                    type="number"
-                    value={reps}
-                    onChange={(e) => setReps(e.target.value)}
-                    placeholder="Number of reps"
-                    min="1"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                
-                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Sets</label>
                   <input
                     type="number"
@@ -336,13 +324,24 @@ function App() {
                 </div>
                 
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Reps</label>
+                  <input
+                    type="number"
+                    value={reps}
+                    onChange={(e) => setReps(e.target.value)}
+                    placeholder="Number of reps"
+                    min="1"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">LB (Weight)</label>
                   <input
                     type="number"
                     value={lb}
                     onChange={(e) => setLb(e.target.value)}
                     placeholder="Weight in lbs"
-                    min="0"
                     step="0.5"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -479,7 +478,6 @@ function App() {
                               setEditingSets(updatedSets);
                             }}
                             placeholder="Weight in lbs"
-                            min="0"
                             step="0.5"
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           />
