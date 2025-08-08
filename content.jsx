@@ -20,6 +20,8 @@ function App() {
   const [lb, setLb] = useState('');
   const [editingEntry, setEditingEntry] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [editingSets, setEditingSets] = useState([]);
+  const [editingCombo, setEditingCombo] = useState(null);
 
   useEffect(() => {
     localStorage.setItem('exercises', JSON.stringify(exercises));
@@ -59,22 +61,21 @@ function App() {
     setShowNewExerciseInput(false);
   };
 
-  const handleEditSubmit = (e) => {
-    e.preventDefault();
-    if (!selectedExercise || !reps || !editingEntry) return;
+  const handleEditSubmit = () => {
+    if (!selectedExercise || editingSets.length === 0 || editingSets.some(set => !set.reps)) return;
 
-    const updatedEntry = {
-      ...editingEntry,
-      exercise: selectedExercise,
-      reps: parseInt(reps),
-      lb: lb ? parseFloat(lb) : null
-    };
+    const updatedEntries = editingSets.map(set => ({
+      ...set,
+      exercise: selectedExercise
+    }));
 
-    setEntries(entries.map(entry => 
-      entry.id === editingEntry.id ? updatedEntry : entry
-    ));
+    setEntries(entries.map(entry => {
+      const updatedEntry = updatedEntries.find(updated => updated.id === entry.id);
+      return updatedEntry || entry;
+    }));
     
-    setEditingEntry(null);
+    setEditingSets([]);
+    setEditingCombo(null);
     setSelectedExercise('');
     setReps('');
     setLb('');
@@ -167,9 +168,6 @@ function App() {
                       <span className="text-2xl font-bold">{group.sets}</span>
                       <span className="text-sm ml-1">sets</span>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      merged
-                    </div>
                   </div>
                   
                   <div className="bg-gray-50 rounded-lg p-3">
@@ -189,15 +187,16 @@ function App() {
                                 </span>
                                 <button
                                   onClick={() => {
-                                    const firstEntryWithCombo = group.entries.find(entry => 
+                                    const allEntriesWithCombo = group.entries.filter(entry => 
                                       entry.reps === combo.reps && 
                                       (entry.lb || null) === (combo.lb || null)
                                     );
-                                    if (firstEntryWithCombo) {
-                                      setEditingEntry(firstEntryWithCombo);
-                                      setSelectedExercise(firstEntryWithCombo.exercise);
-                                      setReps(firstEntryWithCombo.reps.toString());
-                                      setLb(firstEntryWithCombo.lb ? firstEntryWithCombo.lb.toString() : '');
+                                    if (allEntriesWithCombo.length > 0) {
+                                      setEditingSets(allEntriesWithCombo);
+                                      setEditingCombo(combo);
+                                      setSelectedExercise(allEntriesWithCombo[0].exercise);
+                                      setReps(allEntriesWithCombo[0].reps.toString());
+                                      setLb(allEntriesWithCombo[0].lb ? allEntriesWithCombo[0].lb.toString() : '');
                                       setShowEditModal(true);
                                     }
                                   }}
@@ -359,9 +358,12 @@ function App() {
 
         {showEditModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl p-6 w-full max-w-md">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">Edit Set</h2>
-              <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                Edit {editingSets.length} Set{editingSets.length !== 1 ? 's' : ''}
+              </h2>
+              
+              <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Exercise</label>
                   {showNewExerciseInput ? (
@@ -414,47 +416,64 @@ function App() {
                     </div>
                   )}
                 </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Reps</label>
-                  <input
-                    type="number"
-                    value={reps}
-                    onChange={(e) => setReps(e.target.value)}
-                    placeholder="Number of reps"
-                    min="1"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">LB (Weight)</label>
-                  <input
-                    type="number"
-                    value={lb}
-                    onChange={(e) => setLb(e.target.value)}
-                    placeholder="Weight in lbs"
-                    min="0"
-                    step="0.5"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-800">Individual Sets:</h3>
+                  {editingSets.map((set, index) => (
+                    <div key={set.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                      <h4 className="text-sm font-medium text-gray-700 mb-3">Set {index + 1}</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">Reps</label>
+                          <input
+                            type="number"
+                            value={set.reps}
+                            onChange={(e) => {
+                              const updatedSets = [...editingSets];
+                              updatedSets[index] = { ...set, reps: parseInt(e.target.value) || 0 };
+                              setEditingSets(updatedSets);
+                            }}
+                            placeholder="Number of reps"
+                            min="1"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">LB (Weight)</label>
+                          <input
+                            type="number"
+                            value={set.lb || ''}
+                            onChange={(e) => {
+                              const updatedSets = [...editingSets];
+                              updatedSets[index] = { ...set, lb: e.target.value ? parseFloat(e.target.value) : null };
+                              setEditingSets(updatedSets);
+                            }}
+                            placeholder="Weight in lbs"
+                            min="0"
+                            step="0.5"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 
                 <div className="flex gap-3 pt-4">
                   <button
-                    type="submit"
-                    disabled={!selectedExercise || !reps}
+                    onClick={handleEditSubmit}
+                    disabled={!selectedExercise || editingSets.some(set => !set.reps)}
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                   >
-                    Update Set
+                    Update All Sets
                   </button>
                   <button
-                    type="button"
                     onClick={() => {
                       setShowEditModal(false);
                       setShowNewExerciseInput(false);
                       setNewExercise('');
-                      setEditingEntry(null);
+                      setEditingSets([]);
+                      setEditingCombo(null);
                       setSelectedExercise('');
                       setReps('');
                       setLb('');
@@ -464,7 +483,7 @@ function App() {
                     Cancel
                   </button>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         )}
