@@ -18,6 +18,7 @@ function App() {
   const [selectedExercise, setSelectedExercise] = useState('');
   const [reps, setReps] = useState('');
   const [lb, setLb] = useState('');
+  const [sets, setSets] = useState('1');
   const [editingEntry, setEditingEntry] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingSets, setEditingSets] = useState([]);
@@ -33,21 +34,28 @@ function App() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!selectedExercise || !reps) return;
+    if (!selectedExercise || !reps || !sets) return;
 
-    const entry = {
-      id: Date.now(),
-      exercise: selectedExercise,
-      reps: parseInt(reps),
-      lb: lb ? parseFloat(lb) : null,
-      date: new Date().toDateString(),
-      timestamp: Date.now()
-    };
+    const setsCount = parseInt(sets);
+    const newEntries = [];
+    
+    for (let i = 0; i < setsCount; i++) {
+      const entry = {
+        id: Date.now() + i,
+        exercise: selectedExercise,
+        reps: parseInt(reps),
+        lb: lb ? parseFloat(lb) : null,
+        date: new Date().toDateString(),
+        timestamp: Date.now() + i
+      };
+      newEntries.push(entry);
+    }
 
-    setEntries([...entries, entry]);
+    setEntries([...entries, ...newEntries]);
     setSelectedExercise('');
     setReps('');
     setLb('');
+    setSets('1');
     setShowNewExerciseInput(false);
     setNewExercise('');
     setShowForm(false);
@@ -316,6 +324,18 @@ function App() {
                 </div>
                 
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Sets</label>
+                  <input
+                    type="number"
+                    value={sets}
+                    onChange={(e) => setSets(e.target.value)}
+                    placeholder="Number of sets"
+                    min="1"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">LB (Weight)</label>
                   <input
                     type="number"
@@ -331,10 +351,10 @@ function App() {
                 <div className="flex gap-3 pt-4">
                   <button
                     type="submit"
-                    disabled={!selectedExercise || !reps}
+                    disabled={!selectedExercise || !reps || !sets}
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                   >
-                    Add Set
+                    Add {sets} Set{sets !== '1' ? 's' : ''}
                   </button>
                   <button
                     type="button"
@@ -345,6 +365,7 @@ function App() {
                       setSelectedExercise('');
                       setReps('');
                       setLb('');
+                      setSets('1');
                     }}
                     className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
                   >
@@ -355,6 +376,15 @@ function App() {
             </div>
           </div>
         )}
+
+        <button
+          onClick={() => setShowForm(true)}
+          className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
 
         {showEditModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
