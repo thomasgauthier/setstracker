@@ -17,6 +17,8 @@ function App() {
   const [showNewExerciseInput, setShowNewExerciseInput] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState('');
   const [reps, setReps] = useState('');
+  const [lb, setLb] = useState('');
+  const [mergeMode, setMergeMode] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('exercises', JSON.stringify(exercises));
@@ -34,6 +36,7 @@ function App() {
       id: Date.now(),
       exercise: selectedExercise,
       reps: parseInt(reps),
+      lb: lb ? parseFloat(lb) : null,
       date: new Date().toDateString(),
       timestamp: Date.now()
     };
@@ -41,6 +44,7 @@ function App() {
     setEntries([...entries, entry]);
     setSelectedExercise('');
     setReps('');
+    setLb('');
     setShowNewExerciseInput(false);
     setNewExercise('');
     setShowForm(false);
@@ -58,18 +62,36 @@ function App() {
     const grouped = {};
     
     entries.forEach(entry => {
-      const key = `${entry.date}-${entry.exercise}-${entry.reps}`;
+      const key = mergeMode ? `${entry.date}-${entry.exercise}` : `${entry.date}-${entry.exercise}-${entry.reps}-${entry.lb || 0}`;
       if (!grouped[key]) {
         grouped[key] = {
           exercise: entry.exercise,
-          reps: entry.reps,
           date: entry.date,
           sets: 0,
-          entries: []
+          entries: [],
+          repGroups: {},
+          setCombinations: {}
         };
       }
       grouped[key].sets++;
       grouped[key].entries.push(entry);
+      
+      if (mergeMode) {
+        const comboKey = `${entry.reps}-${entry.lb || 'bodyweight'}`;
+        if (!grouped[key].repGroups[entry.reps]) {
+          grouped[key].repGroups[entry.reps] = 0;
+        }
+        grouped[key].repGroups[entry.reps]++;
+        
+        if (!grouped[key].setCombinations[comboKey]) {
+          grouped[key].setCombinations[comboKey] = {
+            reps: entry.reps,
+            lb: entry.lb,
+            sets: 0
+          };
+        }
+        grouped[key].setCombinations[comboKey].sets++;
+      }
     });
 
     return Object.values(grouped).sort((a, b) => b.entries[0].timestamp - a.entries[0].timestamp);
@@ -83,6 +105,16 @@ function App() {
         <header className="text-center py-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">Sets Tracker</h1>
           <p className="text-gray-600">Track your gym sets and reps</p>
+          <button
+            onClick={() => setMergeMode(!mergeMode)}
+            className={`mt-4 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              mergeMode 
+                ? 'bg-purple-600 text-white hover:bg-purple-700' 
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            {mergeMode ? '🔀 Merge Mode ON' : '🔀 Merge Mode OFF'}
+          </button>
         </header>
 
         <div className="grid gap-4 mb-20">
@@ -103,14 +135,53 @@ function App() {
                   <h3 className="text-xl font-semibold text-gray-800">{group.exercise}</h3>
                   <span className="text-sm text-gray-500">{group.date}</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg">
-                    <span className="text-2xl font-bold">{group.sets}</span>
-                    <span className="text-sm ml-1">sets</span>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg">
+                      <span className="text-2xl font-bold">{group.sets}</span>
+                      <span className="text-sm ml-1">sets</span>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {mergeMode ? 'merged' : 'per set'}
+                    </div>
                   </div>
-                  <div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg">
-                    <span className="text-2xl font-bold">{group.reps}</span>
-                    <span className="text-sm ml-1">reps</span>
+                  
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    {mergeMode ? (
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium text-gray-700 mb-2">Set breakdown:</div>
+                        {Object.values(group.setCombinations)
+                          .sort((a, b) => a.reps - b.reps || (a.lb || 0) - (b.lb || 0))
+                          .map((combo, index) => (
+                            <div key={index} className="flex items-center justify-between py-2 px-3 bg-white rounded border">
+                              <span className="font-medium text-gray-800">
+                                {combo.sets}x{combo.reps} reps
+                              </span>
+                              <span className="text-sm text-gray-600">
+                                {combo.lb ? `@ ${combo.lb}lb` : '@ bodyweight'}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-6">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-gray-800">{group.entries[0].reps}</div>
+                            <div className="text-sm text-gray-600">reps</div>
+                          </div>
+                          {group.entries[0].lb !== null && group.entries[0].lb !== undefined && (
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-gray-800">{group.entries[0].lb}</div>
+                              <div className="text-sm text-gray-600">lb</div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-500 font-medium">
+                          {group.entries[0].lb ? `${group.entries[0].reps} @ ${group.entries[0].lb}lb` : `${group.entries[0].reps} reps`}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -188,6 +259,19 @@ function App() {
                   />
                 </div>
                 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">LB (Weight)</label>
+                  <input
+                    type="number"
+                    value={lb}
+                    onChange={(e) => setLb(e.target.value)}
+                    placeholder="Weight in lbs"
+                    min="0"
+                    step="0.5"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
                 <div className="flex gap-3 pt-4">
                   <button
                     type="submit"
@@ -204,6 +288,7 @@ function App() {
                       setNewExercise('');
                       setSelectedExercise('');
                       setReps('');
+                      setLb('');
                     }}
                     className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
                   >
