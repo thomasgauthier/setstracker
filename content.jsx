@@ -23,6 +23,8 @@ function App() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingSets, setEditingSets] = useState([]);
   const [editingCombo, setEditingCombo] = useState(null);
+  const [exerciseSearchOpen, setExerciseSearchOpen] = useState(false);
+  const [exerciseSearchQuery, setExerciseSearchQuery] = useState('');
 
   useEffect(() => {
     localStorage.setItem('exercises', JSON.stringify(exercises));
@@ -68,6 +70,132 @@ function App() {
     setNewExercise('');
     setShowNewExerciseInput(false);
   };
+
+  // Searchable exercise dropdown
+  const exerciseDropdownRef = React.useRef(null);
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (exerciseDropdownRef.current && !exerciseDropdownRef.current.contains(e.target)) {
+        setExerciseSearchOpen(false);
+        setExerciseSearchQuery('');
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredExercises = exercises
+    .filter(ex => ex.toLowerCase().includes(exerciseSearchQuery.toLowerCase()))
+    .sort();
+
+  const ExercisePicker = ({ value, onValueChange }) => (
+    <div ref={exerciseDropdownRef} className="relative">
+      {/* Selected value display */}
+      <button
+        type="button"
+        onClick={() => {
+          if (!showNewExerciseInput) {
+            setExerciseSearchOpen(!exerciseSearchOpen);
+            setExerciseSearchQuery(value ? exercises.find(e => e === value)?.toLowerCase() || '' : '');
+          }
+        }}
+        disabled={showNewExerciseInput}
+        className={`w-full px-3 py-2 border rounded-lg text-left flex items-center justify-between gap-2 ${
+          exerciseSearchOpen && !showNewExerciseInput
+            ? 'border-blue-500 ring-2 ring-blue-500 focus:border-transparent'
+            : 'border-gray-300'
+        } ${showNewExerciseInput ? 'cursor-default' : 'cursor-pointer hover:bg-gray-50'} ${
+          showNewExerciseInput ? 'bg-white' : 'bg-white'
+        }`}
+      >
+        <span className={value ? 'text-gray-900 font-medium' : 'text-gray-400'}>
+          {value || 'Select exercise'}
+        </span>
+        <svg className={`w-4 h-4 text-gray-400 transition-transform ${exerciseSearchOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* Dropdown panel */}
+      {exerciseSearchOpen && !showNewExerciseInput && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-hidden">
+          {/* Search input */}
+          <div className="p-2 border-b border-gray-100">
+            <div className="relative">
+              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                value={exerciseSearchQuery}
+                onChange={(e) => setExerciseSearchQuery(e.target.value)}
+                placeholder="Search exercises..."
+                className="w-full pl-9 pr-8 py-1.5 text-sm border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                autoFocus
+              />
+              {exerciseSearchQuery && (
+                <button
+                  onClick={() => setExerciseSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Exercise list */}
+          <div className="max-h-44 overflow-y-auto">
+            {filteredExercises.length === 0 ? (
+              <div className="px-3 py-3 text-sm text-gray-400 text-center">
+                No exercises found
+              </div>
+            ) : (
+              filteredExercises.map((exercise) => (
+                <button
+                  key={exercise}
+                  onClick={() => {
+                    onValueChange(exercise);
+                    setExerciseSearchOpen(false);
+                    setExerciseSearchQuery('');
+                  }}
+                  className={`w-full px-3 py-2 text-left text-sm hover:bg-blue-50 flex items-center gap-2 transition-colors ${
+                    exercise === value ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                  }`}
+                >
+                  {exercise === value && (
+                    <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                  <span className={exercise === value ? '' : 'ml-6'}>{exercise}</span>
+                </button>
+              ))
+            )}
+          </div>
+
+          {/* Add new exercise link */}
+          <div className="border-t border-gray-100 p-2">
+            <button
+              onClick={() => {
+                onValueChange('new');
+                setExerciseSearchOpen(false);
+                setShowNewExerciseInput(true);
+              }}
+              className="w-full px-3 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add new exercise...
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   const handleEditSubmit = () => {
     if (!selectedExercise || editingSets.length === 0 || editingSets.some(set => !set.reps)) return;
@@ -317,25 +445,7 @@ function App() {
                       </button>
                     </div>
                   ) : (
-                    <div className="flex gap-2">
-                      <select
-                        value={selectedExercise}
-                        onChange={(e) => {
-                          if (e.target.value === 'new') {
-                            setShowNewExerciseInput(true);
-                          } else {
-                            setSelectedExercise(e.target.value);
-                          }
-                        }}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="">Select exercise</option>
-                        {exercises.map((exercise, index) => (
-                          <option key={index} value={exercise}>{exercise}</option>
-                        ))}
-                        <option value="new">+ Add new exercise...</option>
-                      </select>
-                    </div>
+                    <ExercisePicker value={selectedExercise} onValueChange={(v) => v === 'new' ? setShowNewExerciseInput(true) : setSelectedExercise(v)} />
                   )}
                 </div>
                 
@@ -452,25 +562,7 @@ function App() {
                       </button>
                     </div>
                   ) : (
-                    <div className="flex gap-2">
-                      <select
-                        value={selectedExercise}
-                        onChange={(e) => {
-                          if (e.target.value === 'new') {
-                            setShowNewExerciseInput(true);
-                          } else {
-                            setSelectedExercise(e.target.value);
-                          }
-                        }}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="">Select exercise</option>
-                        {exercises.map((exercise, index) => (
-                          <option key={index} value={exercise}>{exercise}</option>
-                        ))}
-                        <option value="new">+ Add new exercise...</option>
-                      </select>
-                    </div>
+                    <ExercisePicker value={selectedExercise} onValueChange={(v) => v === 'new' ? setShowNewExerciseInput(true) : setSelectedExercise(v)} />
                   )}
                 </div>
 
