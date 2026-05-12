@@ -2,7 +2,7 @@
   "name": "setstracker",
   "version": "1.0.0",
   "scripts": {
-    "build": "esbuild content.jsx --bundle --outfile=dist/bundle.js --jsx=automatic --jsx-import-source=react --loader:.jsx=jsx --minify --sourcemap && tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify",
+    "build": "esbuild content.jsx --bundle --outfile=dist/bundle.js --jsx=automatic --jsx-import-source=react --loader:.jsx=jsx --minify --sourcemap && tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify && cp index.html ./dist/",
     "dev": "esbuild content.jsx --bundle --outfile=dist/bundle.js --jsx=automatic --jsx-import-source=react --loader:.jsx=jsx --watch=forever --sourcemap --serve=8000 --servedir=. & tailwindcss -i ./src/styles.css -o ./dist/styles.css --watch"  },
   "dependencies": {
     "react": "^18.2.0",
